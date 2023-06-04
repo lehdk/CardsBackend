@@ -25,9 +25,14 @@ public class LobbyHub : Hub
 
     public async Task SendLobbyChanged(Guid lobbyId)
     {
-        _logger.LogInformation("Send lobby chaned");
+        _logger.LogInformation("Send lobby changed");
 
         await Clients.All.SendAsync("LobbyChanged", _gameLobbyService.GetLobby(lobbyId));
+    }
+
+    public GameLobby? GetGameLobby(Guid lobbyId)
+    {
+        return _gameLobbyService.GetLobby(lobbyId);
     }
 
     public GameLobby CreateLobby()
@@ -40,24 +45,37 @@ public class LobbyHub : Hub
         return lobby;
     }
 
-    public bool JoinLobby(Guid lobbyId, Guid playerId)
+    public async Task<GameLobby?> JoinLobby(Guid lobbyId, Guid playerId)
     {
         try
         {
-            bool didJoin = _gameLobbyService.JoinGameLobby(lobbyId, playerId);
+            GameLobby? gameLobby = _gameLobbyService.JoinGameLobby(lobbyId, playerId);
 
-            if (didJoin)
+            if (gameLobby is not null)
             {
+                await Groups.AddToGroupAsync(Context.ConnectionId, lobbyId.ToString());
+                _ = Clients.Group(lobbyId.ToString()).SendAsync("GroupLobbyPlayersChanged", _gameLobbyService.GetPlayersInLobby(lobbyId));
                 _ = SendLobbyChanged(lobbyId);
+                
             }
 
-            return didJoin;
+            return gameLobby;
         }catch(Exception ex)
         {
             _logger.LogError(ex, ex.Message);
         }
 
-        return false;
+        return null;
+    }
+
+    public async Task LeaveLobby(Guid lobbyId, Guid playerId)
+    {
+        _gameLobbyService.LeaveLobby(lobbyId, playerId);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, lobbyId.ToString());
+
+        _ = Clients.Group(lobbyId.ToString()).SendAsync("GroupLobbyPlayersChanged", _gameLobbyService.GetPlayersInLobby(lobbyId));
+
+        _ = SendLobbyData();
     }
 
     public List<GameLobby> GetLobbies()
@@ -66,5 +84,4 @@ public class LobbyHub : Hub
 
         return _gameLobbyService.GetAllLobbies();
     }
-
 }

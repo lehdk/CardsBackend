@@ -40,7 +40,7 @@ public class GameLobbyService
         return _lobbies.Values.ToList();
     }
 
-    public GameLobby GetLobby(Guid id)
+    public GameLobby? GetLobby(Guid id)
     {
         return _lobbies[id];
     }
@@ -65,17 +65,17 @@ public class GameLobbyService
         return gameLobby;
     }
 
-    public bool JoinGameLobby(Guid gameLobbyId, Guid playerId)
+    public GameLobby? JoinGameLobby(Guid gameLobbyId, Guid playerId)
     {
         Player? playerFromService = _playerService.GetPlayer(playerId);
 
-        if(playerFromService is null) return false;
+        if(playerFromService is null) return null;
 
-        if (playerFromService.JoinedLobbyGuid is not null) return false;
+        if (playerFromService.JoinedLobbyGuid is not null) return null;
 
         if(!_lobbies.ContainsKey(gameLobbyId)) 
         {
-            return false;
+            return null;
         }
 
         GameLobby lobby = _lobbies[gameLobbyId];
@@ -84,6 +84,26 @@ public class GameLobbyService
 
         playerFromService.JoinedLobbyGuid = lobby.Guid;
 
-        return true;
+        return lobby;
+    }
+
+    public void LeaveLobby(Guid lobbyId, Guid playerId)
+    {
+        var lobby = _lobbies[lobbyId];
+        if(lobby is not null)
+        {
+            lobby.RemovePlayer(playerId);
+            if(lobby.GetAllPlayers().Count == 0)
+            {
+                _lobbies.Remove(lobbyId);
+            }
+        }
+
+        var player = _playerService.GetPlayer(playerId);
+        
+        if(player is not null)
+        {
+            player.JoinedLobbyGuid = null;
+        }
     }
 }

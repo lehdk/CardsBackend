@@ -33,6 +33,14 @@ public class GameLobby
         players.Remove(player);
     }
 
+    public void RemovePlayer(Guid playerGuid)
+    {
+        var player = players.FindLast(p => p.Guid == playerGuid);
+        if (player is null) return;
+
+        RemovePlayer(player);
+    }
+
     public List<Player> GetAllPlayers()
     {
         return players;

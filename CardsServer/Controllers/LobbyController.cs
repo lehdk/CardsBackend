@@ -47,7 +47,7 @@ public class LobbyController : ControllerBase
     [HttpPost("JoinGameLobby")]
     public async Task<IActionResult> JoinGameLobby(Guid lobbyGuid, Guid playerGuid)
     {
-        bool result = _gameLobbyService.JoinGameLobby(lobbyGuid, playerGuid);
+        var result = _gameLobbyService.JoinGameLobby(lobbyGuid, playerGuid);
 
         return Ok(result);
     }
